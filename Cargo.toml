@@ -1,0 +1,24 @@
+[package]
+name = "svg-simple-parser"
+version = "0.0.1"
+authors = [ "Simon-Bin@2632003786@qq.com" ]
+description = "A simple parser for svg"
+repository = "https://github.com/Simon-Bin/svg-simple-parser"
+readme = "README.md"
+documentation = "https://docs.rs/svg-simple-parser"
+keywords = ["parser", "svg", "svg parser"]
+categories = ["parser"]
+license = "MIT"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nom = "7"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "main"
+harness = false
