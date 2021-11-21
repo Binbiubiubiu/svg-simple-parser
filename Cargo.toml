@@ -7,7 +7,7 @@ repository = "https://github.com/Simon-Bin/svg-simple-parser"
 readme = "README.md"
 documentation = "https://docs.rs/svg-simple-parser"
 keywords = ["parser", "svg", "svg-parser"]
-categories = ["parser"]
+categories = ["parsing"]
 license = "MIT"
 edition = "2021"
 
