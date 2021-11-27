@@ -21,9 +21,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     </svg>"#;
     let (_, root) = parse(svg).unwrap();
-    println!("parse result: {:#?}", root);
+    println!("parse result: {:#?}", root.clone());
 
-    println!("stringify result: {:#?}", stringify(&roots));
+    println!("stringify result: {:#?}", stringify(root));
     Ok(())
 }
 ```

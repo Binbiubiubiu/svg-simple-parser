@@ -21,6 +21,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ]),
         ))],
     ));
-    println!("{:#?}", stringify(&svg));
+    let child = Element::new((
+        "circle",
+        HashMap::from([
+            ("cx".to_owned(), "100"),
+            ("cy".to_owned(), "50"),
+            ("r".to_owned(), "40"),
+            ("stroke".to_owned(), "black"),
+            ("stroke-width".to_owned(), "2"),
+            ("fill".to_owned(), "red"),
+        ]),
+    ));
+    Element::add_children(svg.clone(), vec![child.clone()].as_mut());
+
+    println!("{:#?}", stringify(svg));
     Ok(())
 }

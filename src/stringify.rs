@@ -1,12 +1,13 @@
-use std::collections::HashMap;
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
 use crate::ast::Element;
 
 const TAB: &str = "  ";
 const LINE: &str = "\r\n";
 
-fn stringify_attrubutes_hash(attribute_hash: &HashMap<String, &str>) -> String {
+fn stringify_attrubutes_hash(attribute_hash: Rc<RefCell<HashMap<String, &str>>>) -> String {
     let mut arr: Vec<(String, &str)> = attribute_hash
+        .borrow()
         .iter()
         .map(|(k, v)| ((*k).clone(), *v))
         .collect();
@@ -16,17 +17,18 @@ fn stringify_attrubutes_hash(attribute_hash: &HashMap<String, &str>) -> String {
 }
 
 fn trasverse(
-    ele: &Element,
+    ele: Rc<RefCell<Element>>,
     z: usize,
     (tab_mark, line_mark): (&'static str, &'static str),
 ) -> String {
+    let element = ele.clone();
     let Element {
         ele_type,
         attributes,
         children,
-    } = ele;
-    let attrs_str = stringify_attrubutes_hash(attributes);
-    let content = if children.is_empty() {
+    } = element.borrow().to_owned();
+    let attrs_str = stringify_attrubutes_hash(attributes.clone());
+    let content = if children.borrow().is_empty() {
         format!(
             "{}<{}{}/>{}",
             tab_mark.repeat(z),
@@ -36,8 +38,9 @@ fn trasverse(
         )
     } else {
         let children_str = children
+            .borrow()
             .iter()
-            .map(|t| trasverse(t, z + 1, (tab_mark, line_mark)))
+            .map(|t| trasverse(t.clone(), z + 1, (tab_mark, line_mark)))
             .collect::<Vec<String>>()
             .join("");
         format!(
@@ -63,27 +66,27 @@ fn trasverse(
 /// ```rust
 /// use svg_simple_parser::{Element,stringify};
 ///
-/// let root = Element{
-///   ele_type:"rect",
-///   attributes:std::collections::HashMap::from([
+/// let root = Element::new_width_children((
+///   "rect",
+///   std::collections::HashMap::from([
 ///     ("width".to_owned(),"100"),
 ///   ]),
-///   children:vec![
-///     Element{
-///       ele_type:"rect",
-///       attributes:std::collections::HashMap::from([
+///   vec![
+///     Element::new_width_children((
+///       "rect",
+///       std::collections::HashMap::from([
 ///         ("width".to_owned(),"100"),
 ///       ]),
-///       children:vec![],
-///     },
+///       vec![],
+///     )),
 ///   ],
-/// };
-/// let svg = stringify(&root);
+/// ));
+/// let svg = stringify(root);
 /// println!("{:#?}", svg);
 /// ```
 ///
-pub fn stringify(ele: &Element) -> String {
-    trasverse(ele, 0, ("", ""))
+pub fn stringify(ele: Rc<RefCell<Element>>) -> String {
+    trasverse(ele.clone(), 0, ("", ""))
 }
 
 /// transform a Element(AST struct) to svg with pretty format
@@ -94,32 +97,32 @@ pub fn stringify(ele: &Element) -> String {
 /// ```rust
 /// use svg_simple_parser::{Element,stringify_pretty};
 ///
-/// let root = Element{
-///   ele_type:"rect",
-///   attributes:std::collections::HashMap::from([
+/// let root = Element::new_width_children((
+///   "rect",
+///   std::collections::HashMap::from([
 ///     ("width".to_owned(),"100"),
 ///   ]),
-///   children:vec![
-///     Element{
-///       ele_type:"rect",
-///       attributes:std::collections::HashMap::from([
+///   vec![
+///     Element::new_width_children((
+///       "rect",
+///       std::collections::HashMap::from([
 ///         ("width".to_owned(),"100"),
 ///       ]),
-///       children:vec![],
-///     },
+///       vec![],
+///     )),
 ///   ],
-/// };
-/// let svg = stringify_pretty(&root);
+/// ));
+/// let svg = stringify_pretty(root);
 /// println!("{:#?}", svg);
 /// ```
 ///
-pub fn stringify_pretty(ele: &Element) -> String {
+pub fn stringify_pretty(ele: Rc<RefCell<Element>>) -> String {
     trasverse(ele, 0, (TAB, LINE))
 }
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
     use crate::{
         stringify::{stringify_attrubutes_hash, trasverse},
@@ -128,16 +131,16 @@ mod tests {
 
     #[test]
     fn test_stringify_attrubutes_hash() {
-        let attrs = HashMap::from([
+        let attrs = Rc::new(RefCell::new(HashMap::from([
             ("cx".to_owned(), "100"),
             ("cy".to_owned(), "50"),
             ("r".to_owned(), "40"),
             ("stroke".to_owned(), "black"),
             ("stroke-width".to_owned(), "2"),
             ("fill".to_owned(), "red"),
-        ]);
+        ])));
         assert_eq!(
-            stringify_attrubutes_hash(&attrs),
+            stringify_attrubutes_hash(attrs),
             r#" cx="100" cy="50" fill="red" r="40" stroke="black" stroke-width="2""#
         );
     }
@@ -163,12 +166,12 @@ mod tests {
             ))],
         ));
         assert_eq!(
-            trasverse(&root, 0, ("", "")),
+            trasverse(root.clone(), 0, ("", "")),
             r#"<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" fill="red" r="40" stroke="black" stroke-width="2"/></svg>"#
         );
 
         assert_eq!(
-            trasverse(&root, 0, ("  ", "\r\n")),
+            trasverse(root.clone(), 0, ("  ", "\r\n")),
             "<svg version=\"1.1\" xmlns=\"http://www.w3.org/2000/svg\">\r\n  <circle cx=\"100\" cy=\"50\" fill=\"red\" r=\"40\" stroke=\"black\" stroke-width=\"2\"/>\r\n</svg>\r\n"
         );
     }

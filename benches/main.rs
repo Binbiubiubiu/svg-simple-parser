@@ -30,7 +30,7 @@ fn strigify_benchmark(c: &mut Criterion) {
         ))],
     ));
     c.bench_function("strigify_benchmark", |b| {
-        b.iter(|| stringify(black_box(&root)))
+        b.iter(|| stringify(black_box(root.clone())))
     });
 }
 

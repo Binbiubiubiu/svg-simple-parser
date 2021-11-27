@@ -1,4 +1,6 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use nom::{
     branch::alt,
@@ -23,7 +25,7 @@ fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
 
 /// parse a text wrapped in `"` or `'`
 /// ## Example
-/// ```
+/// ``` ignore
 ///  "100" -> "100"
 ///  '100' -> "100"
 /// ```
@@ -34,7 +36,7 @@ fn attribute_value<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 
 /// parse a text with key-value format`
 /// ## Example
-/// ```
+/// ``` ignore
 /// width = "100" -> ("width","100")
 /// width = '100' -> ("width","100")
 /// ```
@@ -46,7 +48,7 @@ fn attribute<'a, E: ParseError<&'a str>>(
 
 /// parse a text what is base on a lot oof key-value's format text`
 /// ## Example
-/// ```
+/// ``` ignore
 /// width = "100" height = "200"
 ///
 /// // ↓↓↓↓↓↓↓↓ transform ↓↓↓↓↓↓↓↓
@@ -78,7 +80,7 @@ pub fn attribute_hash<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// parse the preix of the element
 ///
 /// ## Example
-/// ```
+/// ``` ignore
 /// <svg  -> "svg"
 /// ```
 fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
@@ -92,7 +94,7 @@ fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// parse a single element
 ///
 /// ## Example
-/// ```
+/// ``` ignore
 /// <rect width="100"/>
 ///
 /// // ↓↓↓↓↓↓↓↓ transform ↓↓↓↓↓↓↓↓
@@ -107,7 +109,7 @@ fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// ```
 pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
-) -> IResult<&'a str, Element, E> {
+) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
     context(
         "single_element",
         map(
@@ -120,7 +122,7 @@ pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// parse a double element
 ///
 /// ## Example
-/// ```
+/// ``` ignore
 /// <rect width="100">
 ///     <rect width="100"/>
 /// </rect>
@@ -145,7 +147,7 @@ pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// ```
 pub fn double_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
-) -> IResult<&'a str, Element, E> {
+) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
     let attributes_pattern = terminated(attribute_hash, tag(">"));
     let children_pattern = terminated(element_list, terminated(take_until(">"), tag(">")));
     context(
@@ -160,7 +162,7 @@ pub fn double_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// parse a double element or a single element
 fn element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
-) -> IResult<&'a str, Element, E> {
+) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
     context(
         "element",
         delimited(sp, alt((double_element, single_element)), opt(sp)),
@@ -170,7 +172,7 @@ fn element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// parse a list of the element
 fn element_list<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
-) -> IResult<&'a str, Vec<Element>, E> {
+) -> IResult<&'a str, Vec<Rc<RefCell<Element>>>, E> {
     context("element_list", many0(element))(input)
 }
 /// transform svg to a Element(AST struct)
@@ -182,6 +184,8 @@ fn element_list<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ///
 /// ## Example
 /// ```rust
+/// use svg_simple_parser::parse;
+///
 /// let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" version="1.1"><script xmlns=""/>
 ///
 /// <path d="M153 334 C153 334 151 334 151 334 C151 339 153 344 156 344 C164 344 171 339 171 334 C171 322 164 314 156 314 C142 314 131 322 131 334 C131 350 142 364 156 364 C175 364 191 350 191 334 C191 311 175 294 156 294 C131 294 111 311 111 334 C111 361 131 384 156 384 C186 384 211 361 211 334 C211 300 186 274 156 274" style="fill:white;stroke:red;stroke-width:2"/>
@@ -191,7 +195,7 @@ fn element_list<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// println!("{:#?}", root);
 /// ```
 ///
-pub fn parse<'a>(input: &'a str) -> IResult<&'a str, Element> {
+pub fn parse<'a>(input: &'a str) -> IResult<&'a str, Rc<RefCell<Element>>> {
     element(input)
 }
 

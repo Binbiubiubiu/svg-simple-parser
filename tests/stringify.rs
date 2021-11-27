@@ -23,7 +23,7 @@ fn test_parse() {
         ))],
     ));
     assert_eq!(
-        stringify(&root),
+        stringify(root),
         r#"<svg version="1.1" xmlns="http://www.w3.org/2000/svg"><circle cx="100" cy="50" fill="red" r="40" stroke="black" stroke-width="2"/></svg>"#
     );
 }

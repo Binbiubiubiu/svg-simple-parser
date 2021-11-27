@@ -12,7 +12,7 @@
 //!     let (_, root) = parse(svg).unwrap();
 //!     println!("parse result: {:#?}", root);
 //!
-//!     println!("stringify result: {:#?}", stringify(&roots));
+//!     println!("stringify result: {:#?}", stringify(root));
 //!     Ok(())
 //! }
 //! ```
