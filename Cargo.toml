@@ -1,6 +1,6 @@
 [package]
 name = "svg-simple-parser"
-version = "0.0.3"
+version = "0.0.4"
 authors = [ "Simon-Bin@2632003786@qq.com" ]
 description = "A simple parser for svg"
 repository = "https://github.com/Simon-Bin/svg-simple-parser"
