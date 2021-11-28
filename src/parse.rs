@@ -18,6 +18,7 @@ use crate::ast::Element;
 /// remove whitespace
 /// ## Example
 /// ` \t\r\n`
+#[inline(always)]
 fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
     let chars = " \t\r\n";
     take_while(move |c| chars.contains(c))(i)
@@ -29,6 +30,7 @@ fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
 ///  "100" -> "100"
 ///  '100' -> "100"
 /// ```
+#[inline(always)]
 fn attribute_value<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
     let mark = "\"\'";
     delimited(one_of(mark), take_till(|c| mark.contains(c)), one_of(mark))(input)
@@ -40,6 +42,7 @@ fn attribute_value<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 /// width = "100" -> ("width","100")
 /// width = '100' -> ("width","100")
 /// ```
+#[inline(always)]
 fn attribute<'a, E: ParseError<&'a str>>(
     input: &'a str,
 ) -> IResult<&'a str, (&'a str, &'a str), E> {
@@ -58,6 +61,7 @@ fn attribute<'a, E: ParseError<&'a str>>(
 ///     ("height".to_owned(),"200"),
 /// ]);
 /// ```
+#[inline(always)]
 pub fn attribute_hash<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
 ) -> IResult<&'a str, HashMap<String, &'a str>, E> {
@@ -83,6 +87,7 @@ pub fn attribute_hash<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// ``` ignore
 /// <svg  -> "svg"
 /// ```
+#[inline(always)]
 fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
 ) -> IResult<&'a str, &'a str, E> {
@@ -107,6 +112,7 @@ fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ///   children:vec![],
 /// }
 /// ```
+#[inline(always)]
 pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
 ) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
@@ -145,6 +151,7 @@ pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ///   ],
 /// }
 /// ```
+#[inline(always)]
 pub fn double_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
     input: &'a str,
 ) -> IResult<&'a str, Rc<RefCell<Element>>, E> {

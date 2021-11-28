@@ -5,6 +5,8 @@ use crate::ast::Element;
 const TAB: &str = "  ";
 const LINE: &str = "\r\n";
 
+/// hashmap to string
+#[inline(always)]
 fn stringify_attrubutes_hash(attribute_hash: Rc<RefCell<HashMap<String, &str>>>) -> String {
     let mut arr: Vec<(String, &str)> = attribute_hash
         .borrow()
@@ -16,6 +18,8 @@ fn stringify_attrubutes_hash(attribute_hash: Rc<RefCell<HashMap<String, &str>>>)
         .fold("".to_string(), |c, (k, v)| format!("{} {}=\"{}\"", c, k, v))
 }
 
+
+/// element to string
 fn trasverse(
     ele: Rc<RefCell<Element>>,
     z: usize,
