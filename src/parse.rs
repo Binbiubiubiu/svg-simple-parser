@@ -1,4 +1,3 @@
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
 
@@ -15,11 +14,12 @@ use nom::{
 
 use crate::ast::Element;
 
-/// remove whitespace
-/// ## Example
-/// ` \t\r\n`
+/// remove whitespace ` \t\r\n`
 #[inline(always)]
-fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
+fn sp<'a, E>(i: &'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
     let chars = " \t\r\n";
     take_while(move |c| chars.contains(c))(i)
 }
@@ -31,7 +31,10 @@ fn sp<'a, E: ParseError<&'a str>>(i: &'a str) -> IResult<&'a str, &'a str, E> {
 ///  '100' -> "100"
 /// ```
 #[inline(always)]
-fn attribute_value<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, &'a str, E> {
+fn attribute_value<'a, E>(input: &'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str>,
+{
     let mark = "\"\'";
     delimited(one_of(mark), take_till(|c| mark.contains(c)), one_of(mark))(input)
 }
@@ -43,9 +46,10 @@ fn attribute_value<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a st
 /// width = '100' -> ("width","100")
 /// ```
 #[inline(always)]
-fn attribute<'a, E: ParseError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, (&'a str, &'a str), E> {
+fn attribute<'a, E>(input: &'a str) -> IResult<&'a str, (&'a str, &'a str), E>
+where
+    E: ParseError<&'a str>,
+{
     separated_pair(is_not(" ="), tag("="), attribute_value)(input)
 }
 
@@ -56,15 +60,18 @@ fn attribute<'a, E: ParseError<&'a str>>(
 ///
 /// // ↓↓↓↓↓↓↓↓ transform ↓↓↓↓↓↓↓↓
 ///
-/// std::collections::HashMap::from([
+/// use std::collections::HashMap;
+///
+/// HashMap::from([
 ///     ("width".to_owned(),"100"),
 ///     ("height".to_owned(),"200"),
 /// ]);
 /// ```
 #[inline(always)]
-pub fn attribute_hash<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, HashMap<String, &'a str>, E> {
+pub fn attribute_hash<'a, E>(input: &'a str) -> IResult<&'a str, HashMap<String, &'a str>, E>
+where
+    E: ParseError<&'a str> + ContextError<&'a str>,
+{
     context(
         "attribute_hash",
         preceded(
@@ -88,9 +95,10 @@ pub fn attribute_hash<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// <svg  -> "svg"
 /// ```
 #[inline(always)]
-fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, &'a str, E> {
+fn element_start<'a, E>(input: &'a str) -> IResult<&'a str, &'a str, E>
+where
+    E: ParseError<&'a str> + ContextError<&'a str>,
+{
     context(
         "element_start",
         preceded(tag("<"), preceded(sp, alphanumeric1)),
@@ -104,18 +112,22 @@ fn element_start<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ///
 /// // ↓↓↓↓↓↓↓↓ transform ↓↓↓↓↓↓↓↓
 ///
+/// use std::collections::HashMap;
+/// use std::cell::RefCell;
+///
 /// Element{
 ///   ele_type:"rect",
-///   attributes:std::collections::HashMap::from([
+///   attributes:RefCell::new(HashMap::from([
 ///     ("width","100"),
-///   ]),
+///   ])),
 ///   children:vec![],
 /// }
 /// ```
 #[inline(always)]
-pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
+pub fn single_element<'a, E>(input: &'a str) -> IResult<&'a str, Rc<Element>, E>
+where
+    E: ParseError<&'a str> + ContextError<&'a str>,
+{
     context(
         "single_element",
         map(
@@ -135,26 +147,30 @@ pub fn single_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 ///
 /// // ↓↓↓↓↓↓↓↓ transform ↓↓↓↓↓↓↓↓
 ///
+/// use std::collections::HashMap;
+/// use std::cell::RefCell;
+///
 /// Element{
 ///   ele_type:"rect",
-///   attributes:std::collections::HashMap::from([
+///   attributes:RefCell::new(HashMap::from([
 ///     ("width".to_owned(),"100"),
-///   ]),
+///   ])),
 ///   children:vec![
 ///     Element{
 ///       ele_type:"rect",
-///       attributes:std::collections::HashMap::from([
+///       attributes:RefCell::new(HashMap::from([
 ///         ("width".to_owned(),"100"),
-///       ]),
+///       ])),
 ///       children:vec![],
 ///     },
 ///   ],
 /// }
 /// ```
 #[inline(always)]
-pub fn double_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
+pub fn double_element<'a, E>(input: &'a str) -> IResult<&'a str, Rc<Element>, E>
+where
+    E: ParseError<&'a str> + ContextError<&'a str>,
+{
     let attributes_pattern = terminated(attribute_hash, tag(">"));
     let children_pattern = terminated(element_list, terminated(take_until(">"), tag(">")));
     context(
@@ -167,9 +183,10 @@ pub fn double_element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 }
 
 /// parse a double element or a single element
-fn element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, Rc<RefCell<Element>>, E> {
+fn element<'a, E>(input: &'a str) -> IResult<&'a str, Rc<Element>, E>
+where
+    E: ParseError<&'a str> + ContextError<&'a str>,
+{
     context(
         "element",
         delimited(sp, alt((double_element, single_element)), opt(sp)),
@@ -177,9 +194,10 @@ fn element<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 }
 
 /// parse a list of the element
-fn element_list<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
-    input: &'a str,
-) -> IResult<&'a str, Vec<Rc<RefCell<Element>>>, E> {
+fn element_list<'a, E>(input: &'a str) -> IResult<&'a str, Vec<Rc<Element>>, E>
+where
+    E: ParseError<&'a str> + ContextError<&'a str>,
+{
     context("element_list", many0(element))(input)
 }
 /// transform svg to a Element(AST struct)
@@ -192,17 +210,29 @@ fn element_list<'a, E: ParseError<&'a str> + ContextError<&'a str>>(
 /// ## Example
 /// ```rust
 /// use svg_simple_parser::parse;
+/// use std::collections::HashMap;
 ///
-/// let svg = r#"<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" version="1.1"><script xmlns=""/>
-///
-/// <path d="M153 334 C153 334 151 334 151 334 C151 339 153 344 156 344 C164 344 171 339 171 334 C171 322 164 314 156 314 C142 314 131 322 131 334 C131 350 142 364 156 364 C175 364 191 350 191 334 C191 311 175 294 156 294 C131 294 111 311 111 334 C111 361 131 384 156 384 C186 384 211 361 211 334 C211 300 186 274 156 274" style="fill:white;stroke:red;stroke-width:2"/>
-///     
-/// </svg>"#;
+/// let svg = r#"
+///     <svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+///         <circle cx="100" cy="50" r="40" />
+///     </svg>
+/// "#;
 /// let (_, root) = parse(svg).unwrap();
-/// println!("{:#?}", root);
+/// assert_eq!(root.ele_type, "svg");
+/// assert_eq!(*root.attributes.borrow(), HashMap::from([
+///     ("xmlns".to_owned(), "http://www.w3.org/2000/svg"),
+///     ("version".to_owned(), "1.1"),
+/// ]));
+/// let child = &*root.children.borrow()[0];
+/// assert_eq!(child.ele_type, "circle");
+/// assert_eq!(*child.attributes.borrow(), HashMap::from([
+///     ("cx".to_owned(), "100"),
+///     ("cy".to_owned(), "50"),
+///     ("r".to_owned(), "40"),
+/// ]));
 /// ```
 ///
-pub fn parse<'a>(input: &'a str) -> IResult<&'a str, Rc<RefCell<Element>>> {
+pub fn parse<'a>(input: &'a str) -> IResult<&'a str, Rc<Element>> {
     element(input)
 }
 
@@ -211,93 +241,56 @@ mod tests {
     use nom::error::ErrorKind;
     use std::collections::HashMap;
 
-    use crate::ast::Element;
-
     use crate::parse::{
         attribute, attribute_hash, attribute_value, double_element, element_list, single_element,
     };
 
     #[test]
     fn test_elements() {
-        let root = vec![
-            Element::new((
-                "svg",
-                HashMap::from([
-                    ("xmlns".to_owned(), "http://www.w3.org/2000/svg"),
-                    ("version".to_owned(), "1.1"),
-                ]),
-            )),
-            Element::new((
-                "svg",
-                HashMap::from([
-                    ("xmlns".to_owned(), "http://www.w3.org/2000/svg"),
-                    ("version".to_owned(), "1.1"),
-                ]),
-            )),
-        ];
+        let (_, v) = element_list::<(&str, ErrorKind)>(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1"/>"#,
+        )
+        .unwrap();
+        let one = &v[0];
+        assert_eq!(one.ele_type, "svg");
         assert_eq!(
-            element_list::<(&str, ErrorKind)>(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1"/>
-                <svg xmlns="http://www.w3.org/2000/svg" version="1.1"/>"#
-            ),
-            Ok(("", root))
+            *one.attributes.borrow(),
+            HashMap::from([
+                ("xmlns".to_owned(), "http://www.w3.org/2000/svg"),
+                ("version".to_owned(), "1.1"),
+            ])
         );
     }
 
     #[test]
     fn test_double_element() {
-        let root = Element::new_width_children((
-            "svg",
+        let (_, root) = double_element::<(&str, ErrorKind)>(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1"></svg>"#,
+        )
+        .unwrap();
+        assert_eq!(root.ele_type, "svg");
+        assert_eq!(
+            *root.attributes.borrow(),
             HashMap::from([
                 ("xmlns".to_owned(), "http://www.w3.org/2000/svg"),
                 ("version".to_owned(), "1.1"),
-            ]),
-            vec![Element::new((
-                "circle",
-                HashMap::from([
-                    ("cx".to_owned(), "100"),
-                    ("cy".to_owned(), "50"),
-                    ("r".to_owned(), "40"),
-                    ("stroke".to_owned(), "black"),
-                    ("stroke-width".to_owned(), "2"),
-                    ("fill".to_owned(), "red"),
-                ]),
-            ))],
-        ));
-        assert_eq!(
-            double_element::<(&str, ErrorKind)>(
-                r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
-            <circle cx="100" cy="50" r="40" stroke="black" stroke-width="2" fill="red"/>
-        </svg>"#
-            ),
-            Ok(("", root))
+            ])
         );
     }
 
     #[test]
     fn test_single_element() {
+        let (_, root) = single_element::<(&str, ErrorKind)>(
+            r#"<svg xmlns="http://www.w3.org/2000/svg" version="1.1" />"#,
+        )
+        .unwrap();
+        assert_eq!(root.ele_type, "svg");
         assert_eq!(
-            single_element::<(&str, ErrorKind)>(r#"<rect width="123" height="456" />"#),
-            Ok((
-                "",
-                Element::new((
-                    "rect",
-                    HashMap::from([("width".to_owned(), "123"), ("height".to_owned(), "456")])
-                ))
-            ))
-        );
-        assert_eq!(
-            single_element::<(&str, ErrorKind)>(r#"<rect width=" 1 2 3 " height=" 4 5 6 " />"#),
-            Ok((
-                "",
-                Element::new((
-                    "rect",
-                    HashMap::from([
-                        ("width".to_owned(), " 1 2 3 "),
-                        ("height".to_owned(), " 4 5 6 ")
-                    ])
-                ))
-            ))
+            *root.attributes.borrow(),
+            HashMap::from([
+                ("xmlns".to_owned(), "http://www.w3.org/2000/svg"),
+                ("version".to_owned(), "1.1"),
+            ])
         );
     }
 

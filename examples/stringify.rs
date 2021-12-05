@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use svg_simple_parser::{stringify, Element};
+use svg_simple_parser::{stringify_pretty, Element};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let svg = Element::new_width_children((
@@ -32,8 +32,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             ("fill".to_owned(), "red"),
         ]),
     ));
-    Element::add_children(svg.clone(), vec![child.clone()].as_mut());
+    svg.add_children(vec![child.clone()]);
 
-    println!("{:#?}", stringify(svg));
+    println!("{:#?}", stringify_pretty(svg));
     Ok(())
 }

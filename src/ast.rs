@@ -1,12 +1,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::rc::Rc;
+use std::rc::{Rc, Weak};
 
-type NewWithChildren<'a> = (
-    &'a str,
-    HashMap<String, &'a str>,
-    Vec<Rc<RefCell<Element<'a>>>>,
-);
+type NewWithChildren<'a> = (&'a str, HashMap<String, &'a str>, Vec<Rc<Element<'a>>>);
 
 /// AST struct
 ///
@@ -15,11 +11,12 @@ type NewWithChildren<'a> = (
 /// `attributes` the attributes in the element
 ///
 /// `children` the children in the element
-#[derive(Debug, PartialEq, Eq, Clone)]
+#[derive(Debug, Clone)]
 pub struct Element<'a> {
     pub ele_type: &'a str,
-    pub attributes: Rc<RefCell<HashMap<String, &'a str>>>,
-    pub children: RefCell<Vec<Rc<RefCell<Element<'a>>>>>,
+    pub attributes: RefCell<HashMap<String, &'a str>>,
+    pub parent: RefCell<Weak<Element<'a>>>,
+    pub children: RefCell<Vec<Rc<Element<'a>>>>,
 }
 
 impl<'a> Element<'a> {
@@ -33,12 +30,13 @@ impl<'a> Element<'a> {
     /// Element::new(("rect",HashMap::from([("width".to_owned(), "100"),("height".to_owned(), "100")])));
     /// ```
     ///
-    pub fn new((ele_type, attributes): (&'a str, HashMap<String, &'a str>)) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Element {
+    pub fn new((ele_type, attributes): (&'a str, HashMap<String, &'a str>)) -> Rc<Self> {
+        Rc::new(Element {
             ele_type,
-            attributes: Rc::new(RefCell::new(attributes)),
+            parent: RefCell::new(Weak::new()),
+            attributes: RefCell::new(attributes),
             children: RefCell::new(vec![]),
-        }))
+        })
     }
 
     /// new a element with children
@@ -52,14 +50,22 @@ impl<'a> Element<'a> {
     /// Element::new_width_children(("rect",HashMap::from([("width".to_owned(), "100"),("height".to_owned(), "100")]),vec![child]));
     /// ```
     ///
-    pub fn new_width_children(
-        (ele_type, attributes, children): NewWithChildren<'a>,
-    ) -> Rc<RefCell<Self>> {
-        Rc::new(RefCell::new(Element {
+    pub fn new_width_children((ele_type, attributes, children): NewWithChildren<'a>) -> Rc<Self> {
+        let parent = Rc::new(Element {
             ele_type,
-            attributes: Rc::new(RefCell::new(attributes)),
-            children: RefCell::new(children),
-        }))
+            attributes: RefCell::new(attributes),
+            parent: RefCell::new(Weak::new()),
+            children: RefCell::new(vec![]),
+        });
+        *parent.children.borrow_mut() = children
+            .iter()
+            .map(|node| {
+                let node = node.clone();
+                *node.parent.borrow_mut() = Rc::downgrade(&parent);
+                node
+            })
+            .collect();
+        parent
     }
 
     /// add a element to the children of the element.
@@ -76,8 +82,10 @@ impl<'a> Element<'a> {
     /// assert_eq!(parent.borrow().children.borrow().get(0),Some(&child));
     /// ```
     ///
-    pub fn add_child(ele: Rc<RefCell<Element<'a>>>, new_item: Rc<RefCell<Element<'a>>>) {
-        ele.borrow().children.borrow_mut().push(new_item);
+    pub fn add_child(self: &Rc<Element<'a>>, new_item: Rc<Element<'a>>) {
+        let node = new_item.clone();
+        *node.parent.borrow_mut() = Rc::downgrade(self);
+        self.children.borrow_mut().push(new_item);
     }
 
     /// add a list of element to the children of the element.
@@ -94,10 +102,15 @@ impl<'a> Element<'a> {
     /// assert_eq!(parent.borrow().children.borrow().get(0),Some(&child));
     /// ```
     ///
-    pub fn add_children(
-        ele: Rc<RefCell<Element<'a>>>,
-        new_items: &mut Vec<Rc<RefCell<Element<'a>>>>,
-    ) {
-        ele.borrow().children.borrow_mut().append(new_items);
+    pub fn add_children(self: &Rc<Element<'a>>, new_items: Vec<Rc<Element<'a>>>) {
+        let mut new_items = new_items
+            .iter()
+            .map(|node| {
+                let node = node.clone();
+                *node.parent.borrow_mut() = Rc::downgrade(self);
+                node
+            })
+            .collect();
+        (self.children.borrow_mut()).append(&mut new_items);
     }
 }
