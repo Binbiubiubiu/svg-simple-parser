@@ -6,7 +6,7 @@ a simple parser for svg
 
 ```
 [dependencies]
-svg-simple-parser = "0.0.1"
+svg-simple-parser = "0.0.6"
 ```
 
 ## Usage
